@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}{{ sensor_name }} Detail View{% endblock %}
+
+{% block content %}
+<h3 class="mb-4">
+    {% if color %}
+    <i class="fas {{ icon }} me-2" style="color: '{{ color }}';"></i> {{ sensor_name }} Detail
+    {% else %}
+    <i class="fas {{ icon }} me-2"></i> {{ sensor_name }} Detail
+    {% endif %}
+</h3>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm p-3">
+            <h5 class="text-muted">{{ sensor_name }} Huidig</h5>
+            <h1 class="mb-0">{{ latest_value | round(2) }}{{ unit }}</h1>
+            <p class="text-success"><i class="fas fa-check-circle"></i> Optimaal bereik: {{ min_alert }} tot {{ max_alert }}{{ unit }}</p>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-history me-2"></i> Historische Data (Laatste 24 uur)</h5>
+                <div style="height: 450px;">
+                    <canvas id="historicalChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="alert alert-info" role="alert">
+            <h4 class="alert-heading">Wat betekent deze meting?</h4>
+            <p>{{ description }}</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Data die Flask vanuit de backend heeft ingeladen
+    const chartLabels = JSON.parse('{{ chart_labels | tojson | safe }}');
+    const chartData = JSON.parse('{{ chart_data | tojson | safe }}');
+    const sensorName = '{{ sensor_name }}';
+    const sensorUnit = '{{ unit }}';
+    const sensorColor = '{{ color }}';
+    const minAlert = parseFloat('{{ min_alert }}');
+    const maxAlert = parseFloat('{{ max_alert }}');
+
+    function initHistoricalChart() {
+        const ctx = document.getElementById('historicalChart')?.getContext('2d');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartLabels, 
+                    datasets: [{
+                        label: `${sensorName} (${sensorUnit})`,
+                        data: chartData,
+                        borderColor: sensorColor,
+                        backgroundColor: `${sensorColor}20`, // Lichtere kleur met 20% alpha
+                        tension: 0.4, 
+                        fill: true,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: sensorName
+                            },
+                            // Voeg de alarm zones toe (belangrijk!)
+                            suggestedMin: minAlert - (minAlert * 0.1), 
+                            suggestedMax: maxAlert + (maxAlert * 0.1),
+                            
+                            // Voeg lijnen toe voor de optimale zones
+                            // Dit vereist het 'annotation' plugin, maar we doen het simpel:
+                            
+                        }
+                    },
+                    plugins: {
+                        legend: { display: true, position: 'top' },
+                        // De optimale zone kan als plugin worden toegevoegd, maar voor nu houden we het simpel
+                    }
+                }
+            });
+        }
+    }
+
+    // Initialiseer de grafiek zodra de DOM geladen is
+    document.addEventListener('DOMContentLoaded', initHistoricalChart);
+</script>
+{% endblock %}

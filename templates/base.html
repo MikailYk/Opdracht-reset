@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Mikail Greenhouse Project Dashboard{% endblock %}</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-annotation/2.2.1/chartjs-plugin-annotation.min.js"></script>
+
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden; 
+            background-color: #f8f9fa; 
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* --- SIDEBAR & NAVBAR STYLING --- */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 250px;
+            background-color: #212529; 
+            padding-top: 56px; 
+            color: #adb5bd;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            overflow-y: auto; 
+            z-index: 1050; 
+        }
+
+        .sidebar a {
+            color: #adb5bd;
+            padding: 10px 15px;
+            display: block;
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            /* Flexbox voor iconen */
+            display: flex; 
+            align-items: center;
+        }
+
+        /* Actieve link via Flask variabele `active_page` */
+        .sidebar .nav-item.active > a,
+        .sidebar .dropdown-item.active { /* Ook sub-items markeren als actief */
+            color: #ffffff !important;
+            background-color: #343a40 !important; 
+            border-left: 3px solid #00bcd4; 
+        }
+        
+        .sidebar a:hover {
+            color: #ffffff;
+            background-color: #343a40; 
+        }
+        
+        /* Submenu's */
+        .sidebar .dropdown-menu {
+            position: static;
+            display: block; 
+            width: 100%;
+            margin-top: 0;
+            background-color: #343a40;
+            border: none;
+            padding: 0;
+            box-shadow: none;
+        }
+
+        .sidebar .dropdown-item {
+            padding-left: 30px;
+            color: #adb5bd;
+        }
+        .sidebar .dropdown-item:hover {
+            background-color: #495057;
+            color: white;
+        }
+
+
+        .navbar {
+            background-color: white; 
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            position: fixed;
+            width: 100%;
+            z-index: 1000;
+            padding-left: 250px; 
+        }
+
+        .main-content {
+            margin-left: 250px; 
+            padding: 20px;
+            padding-top: 76px; 
+            height: 100vh; 
+            overflow-y: auto; 
+        }
+
+        /* --- STYLING VOOR WIDGETS & CONTROLS (gedeeld) --- */
+        .data-widget {
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+            background: white;
+            padding: 20px;
+            height: 100%;
+            transition: transform 0.2s, border 0.3s, background-color 0.3s;
+            cursor: pointer;
+            border: 2px solid transparent;
+            position: relative; 
+        }
+        .data-widget:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
+        }
+        .data-widget.alert-low {
+            background-color: #fffde7; 
+            border-color: #ffc107;
+        }
+        .data-widget.alert-high {
+            background-color: #fcebeb; 
+            border-color: #dc3545;
+        }
+        .data-widget .icon-box {
+            font-size: 2.5rem;
+            padding: 10px;
+            border-radius: 5px;
+            color: white;
+            float: right;
+            opacity: 0.8;
+        }
+        .advice-box {
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: 5px;
+            padding: 8px;
+            margin-top: 10px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #212529;
+            border-left: 3px solid;
+        }
+        .data-widget.alert-low .advice-box {
+            border-left-color: #ffc107;
+            background-color: rgba(255, 193, 7, 0.2);
+        }
+        .data-widget.alert-high .advice-box {
+            border-left-color: #dc3545;
+            background-color: rgba(220, 53, 69, 0.2);
+        }
+
+    </style>
+    {% block head_extra %}{% endblock %}
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg">
+    <div class="container-fluid">
+        <span class="navbar-brand me-auto">
+            <i class="fas fa-seedling me-2 text-success"></i> Mikail Greenhouse Project
+        </span>
+        <div class="d-flex align-items-center">
+            <span class="navbar-text me-4 d-none d-lg-block">
+                Laatste Update: <span id="last-update-time"></span>
+            </span>
+            <ul class="navbar-nav">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownUser" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <img src="https://via.placeholder.com/30/00bcd4/ffffff?text=M" class="rounded-circle me-1" alt="Mikail"> Project User 
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownUser">
+                        <li><a class="dropdown-item" href="#">Instellingen</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="#">Exit</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="sidebar">
+    <div class="p-3 text-center">
+        <img src="https://via.placeholder.com/60/00bcd4/ffffff?text=M" class="rounded-circle mb-2" alt="Project User">
+        <h5 class="text-white">Welcome "Docent"</h5>
+    </div>
+    
+    <div class="mt-4">
+        <ul class="list-unstyled sidebar-nav">
+            <li class="nav-item {% if active_page == 'dashboard' %}active{% endif %}">
+                <a href="{{ url_for('index') }}" class="nav-link"><i class="fas fa-home fa-fw me-2"></i> Dashboard</a>
+            </li>
+            
+            <li class="nav-item {% if active_page == 'climatic' %}active{% endif %}">
+                <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="collapse" data-bs-target="#climatic-menu">
+                    <i class="fas fa-cloud fa-fw me-2"></i> Climatic Data
+                </a>
+                <ul class="dropdown-menu collapse {% if active_page == 'climatic' %}show{% endif %}" id="climatic-menu">
+                    <li><a class="dropdown-item" href="{{ url_for('detail_view', sensor_name='Temperature') }}">Temperature</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('detail_view', sensor_name='Humidity') }}">Humidity</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('detail_view', sensor_name='Soil Moisture') }}">Soil Moisture</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('detail_view', sensor_name='Light Level') }}">Light Level</a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('detail_view', sensor_name='pH Level') }}">pH Level</a></li>
+                </ul>
+            </li>
+            
+            <li class="nav-item {% if active_page == 'controls' %}active{% endif %}">
+                <a href="{{ url_for('controls') }}" class="nav-link">
+                    <i class="fas fa-sliders-h fa-fw me-2"></i> Controls
+                </a>
+            </li>
+            
+            <li class="nav-item {% if active_page == 'reports' %}active{% endif %}">
+                <a href="#" class="nav-link"><i class="fas fa-file-alt fa-fw me-2"></i> Reports</a>
+            </li>
+            
+            <li class="nav-item {% if active_page == 'settings' %}active{% endif %}">
+                <a href="#" class="nav-link"><i class="fas fa-cog fa-fw me-2"></i> Settings</a>
+            </li>
+            
+            <li class="nav-item {% if active_page == 'database_view' %}active{% endif %}">
+                <a href="{{ url_for('view_all_data') }}" class="nav-link">
+                    <i class="fas fa-database fa-fw me-2"></i> Database
+                </a>
+            </li>
+        </ul>
+    </div>
+    
+    <div class="position-absolute bottom-0 w-100 text-center p-2 border-top border-secondary" style="background-color: #212529;">
+        <a href="#" class="text-light me-3"><i class="fas fa-info-circle fa-lg"></i></a>
+        <a href="#" class="text-light me-3"><i class="fas fa-user-circle fa-lg"></i></a>
+        <a href="#" class="text-light"><i class="fas fa-sign-out-alt fa-lg"></i></a>
+    </div>
+</div>
+
+<div class="main-content" id="main-content-area">
+    {% block content %}
+    {% endblock %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+{% block scripts %}{% endblock %}
+
+</body>
+</html>

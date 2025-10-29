@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-8 text-center">
+        <div class="card shadow p-5 bg-light">
+            <i class="fas fa-exclamation-triangle fa-5x text-warning mb-4"></i> 
+            
+            <h1 class="display-4 text-dark">{{ title | default('Pagina niet gevonden of in aanbouw') }}</h1>
+            
+            <p class="lead text-muted mt-3">
+                De gevraagde pagina kon niet worden geladen of is nog niet geconfigureerd.
+            </p>
+            
+            <hr class="my-4">
+            
+            <p class="text-secondary">
+                Klik op de knop hieronder om terug te gaan naar het Dashboard.
+            </p>
+            
+            <a class="btn btn-primary btn-lg mt-3" href="{{ url_for('index') }}" role="button">
+                <i class="fas fa-home me-2"></i> Ga naar Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Equipment Controls{% endblock %}
+
+{% block content %}
+<h3 class="mb-4"><i class="fas fa-sliders-h me-2"></i> Equipment Controls</h3>
+<p class="text-muted">Beheer de automatische en handmatige apparatuur van de kas. (LET OP: Dit zijn nu puur visuele controls zonder backend-logica).</p>
+
+<div class="row mt-4">
+    <div class="col-lg-6">
+        <div class="control-panel card shadow-sm p-4">
+            <h4 class="mb-3 text-primary">Handmatige Bediending</h4>
+
+            <div class="control-item d-flex justify-content-between align-items-center">
+                <div>
+                    <h5>Ventilatoren (Fans)</h5>
+                    <p class="text-muted mb-0">Controleert de luchtcirculatie en temperatuur.</p>
+                </div>
+                <div>
+                    <span class="badge bg-secondary me-3" id="fans-status">OFF</span>
+                    <button class="btn btn-outline-success btn-sm" onclick="toggleEquipment('fans')">AAN</button>
+                </div>
+            </div>
+
+            <div class="control-item d-flex justify-content-between align-items-center">
+                <div>
+                    <h5>Kweeklampen (Lights)</h5>
+                    <p class="text-muted mb-0">Reguleert de lichtintensiteit voor fotosynthese.</p>
+                </div>
+                <div>
+                    <span class="badge bg-success me-3" id="lights-status">ON</span>
+                    <button class="btn btn-outline-danger btn-sm" onclick="toggleEquipment('lights')">UIT</button>
+                </div>
+            </div>
+
+            <div class="control-item d-flex justify-content-between align-items-center">
+                <div>
+                    <h5>Waterpomp (Pump)</h5>
+                    <p class="text-muted mb-0">Levert water aan het irrigatiesysteem.</p>
+                </div>
+                <div>
+                    <span class="badge bg-secondary me-3" id="pump-status">OFF</span>
+                    <button class="btn btn-outline-success btn-sm" onclick="toggleEquipment('pump')">AAN</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="control-panel card shadow-sm p-4">
+            <h4 class="mb-3 text-info">Systeemstatus</h4>
+            <p>Hier kunt u de huidige automatiseringsregels en geplande taken bekijken.</p>
+            <ul class="list-group">
+                <li class="list-group-item">Irrigatie: <span class="badge bg-success float-end">Auto (70% Drempel)</span></li>
+                <li class="list-group-item">Temperatuurregeling: <span class="badge bg-warning text-dark float-end">Auto (25-30°C)</span></li>
+                <li class="list-group-item">Lichtcyclus: <span class="badge bg-primary float-end">Auto (06:00 - 22:00)</span></li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // --- EQUIPMENT STATUS (Moet in elk geval hier gedefinieerd zijn voor de controls pagina) ---
+    let equipmentStatus = {
+        fans: false,
+        lights: true,
+        pump: false
+    };
+
+    // Toggles the state of a piece of equipment (e.g., fans, lights)
+    function toggleEquipment(equipment) {
+        equipmentStatus[equipment] = !equipmentStatus[equipment];
+        const statusElement = document.getElementById(`${equipment}-status`);
+        const button = statusElement.nextElementSibling; // De knop is het volgende element
+        
+        if (statusElement) {
+            if (equipmentStatus[equipment]) {
+                statusElement.textContent = 'ON';
+                statusElement.classList.remove('bg-secondary');
+                statusElement.classList.add('bg-success');
+                
+                button.textContent = 'UIT';
+                button.classList.remove('btn-outline-success');
+                button.classList.add('btn-outline-danger');
+            } else {
+                statusElement.textContent = 'OFF';
+                statusElement.classList.remove('bg-success');
+                statusElement.classList.add('bg-secondary');
+
+                button.textContent = 'AAN';
+                button.classList.remove('btn-outline-danger');
+                button.classList.add('btn-outline-success');
+            }
+        }
+        console.log(`Equipment ${equipment} status: ${equipmentStatus[equipment] ? 'ON' : 'OFF'}`);
+    }
+
+    // Initialiseer de status van de elementen bij het laden van de pagina
+    document.addEventListener('DOMContentLoaded', function() {
+        // Zorg ervoor dat de knoppen en badges de juiste startstatus hebben
+        for (const [key, status] of Object.entries(equipmentStatus)) {
+            // Roep toggleEquipment aan om de DOM-elementen correct in te stellen op basis van de initiële JS-waarde
+            // We togglen niet, maar zetten de staat direct:
+            const statusElement = document.getElementById(`${key}-status`);
+            const button = statusElement?.nextElementSibling;
+
+            if(statusElement && button) {
+                if (status) {
+                    statusElement.textContent = 'ON';
+                    statusElement.classList.remove('bg-secondary');
+                    statusElement.classList.add('bg-success');
+                    button.textContent = 'UIT';
+                    button.classList.remove('btn-outline-success');
+                    button.classList.add('btn-outline-danger');
+                } else {
+                    statusElement.textContent = 'OFF';
+                    statusElement.classList.remove('bg-success');
+                    statusElement.classList.add('bg-secondary');
+                    button.textContent = 'AAN';
+                    button.classList.remove('btn-outline-danger');
+                    button.classList.add('btn-outline-success');
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}waar 

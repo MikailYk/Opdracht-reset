@@ -1,319 +1,70 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mikail Greenhouse Project Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% extends "base.html" %}
 
-    <style>
-        /* CRITICAL SCROLL FIX & BASE STYLING (ongewijzigd) */
-        html, body {
-            height: 100%;
-            margin: 0;
-            overflow: hidden; 
-            background-color: #f8f9fa; 
-            font-family: 'Inter', sans-serif;
-        }
+{% block title %}Live Dashboard{% endblock %}
 
-        /* --- SIDEBAR & NAVBAR STYLING (ongewijzigd) --- */
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100%;
-            width: 250px;
-            background-color: #212529; 
-            padding-top: 56px; 
-            color: #adb5bd;
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-            overflow-y: auto; 
-            z-index: 1050; 
-        }
+{% block content %}
+<h3 class="mb-4"><i class="fas fa-chart-line me-2"></i> Live Dashboard</h3>
 
-        .sidebar a {
-            color: #adb5bd;
-            padding: 10px 15px;
-            display: block;
-            text-decoration: none;
-            font-size: 0.95rem;
-            transition: all 0.2s;
-        }
+<div class="row g-4 mt-2" id="data-widgets-container">
+    </div>
 
-        .sidebar a:hover,
-        .sidebar .active > a,
-        .sidebar .active {
-            color: #ffffff;
-            background-color: #343a40; 
-            border-left: 3px solid #00bcd4; 
-        }
-        
-        .sidebar .dropdown-menu {
-            position: static;
-            display: block; 
-            width: 100%;
-            margin-top: 0;
-            background-color: #343a40;
-            border: none;
-            padding: 0;
-            box-shadow: none;
-            max-height: 0; 
-            overflow: hidden;
-            transition: max-height 0.3s ease-in-out;
-        }
-
-        .sidebar .dropdown-menu.show {
-            max-height: 500px; 
-        }
-
-        .sidebar .dropdown-item {
-            padding-left: 30px;
-            color: #adb5bd;
-        }
-        .sidebar .dropdown-item:hover {
-            background-color: #495057;
-            color: white;
-        }
-
-
-        .navbar {
-            background-color: white; 
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-            position: fixed;
-            width: 100%;
-            z-index: 1000;
-            padding-left: 250px; 
-        }
-        .navbar-brand {
-            color: #212529 !important;
-            font-weight: 700;
-        }
-
-        .main-content {
-            margin-left: 250px; 
-            padding: 20px;
-            padding-top: 76px; 
-            height: 100vh; 
-            overflow-y: auto; 
-        }
-
-        /* --- WIDGET & ALERT STYLING (ongewijzigd) --- */
-        .data-widget {
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-            background: white;
-            padding: 20px;
-            height: 100%;
-            transition: transform 0.2s, border 0.3s, background-color 0.3s;
-            cursor: pointer;
-            border: 2px solid transparent;
-            position: relative; 
-        }
-
-        .data-widget:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Alert Styling - LOW (Caution/Warning) */
-        .data-widget.alert-low {
-            background-color: #fffde7; 
-            border-color: #ffc107;
-            box-shadow: 0 4px 10px rgba(255, 193, 7, 0.5);
-        }
-        .data-widget.alert-low h2,
-        .data-widget.alert-low h6 {
-            color: #ffc107 !important;
-        }
-
-        /* Alert Styling - HIGH (Critical) */
-        .data-widget.alert-high {
-            background-color: #fcebeb; 
-            border-color: #dc3545;
-            box-shadow: 0 4px 10px rgba(220, 53, 69, 0.5);
-        }
-        .data-widget.alert-high h2,
-        .data-widget.alert-high h6 {
-            color: #dc3545 !important;
-        }
-        
-        .data-widget .icon-box {
-            font-size: 2.5rem;
-            padding: 10px;
-            border-radius: 5px;
-            color: white;
-            float: right;
-            opacity: 0.8;
-        }
-        
-        /* --- ADVICE BOX STYLING (ongewijzigd) --- */
-        .advice-box {
-            background-color: rgba(255, 255, 255, 0.5);
-            border-radius: 5px;
-            padding: 8px;
-            margin-top: 10px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            color: #212529;
-            border-left: 3px solid;
-        }
-        .data-widget.alert-low .advice-box {
-            border-left-color: #ffc107;
-            background-color: rgba(255, 193, 7, 0.2);
-        }
-        .data-widget.alert-high .advice-box {
-            border-left-color: #dc3545;
-            background-color: rgba(220, 53, 69, 0.2);
-        }
-
-        /* --- INTERACTIVE CONTROLS STYLING (ongewijzigd) --- */
-        .control-panel {
-            background: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-            padding: 20px;
-        }
-        .control-item {
-            border-bottom: 1px solid #eee;
-            padding: 15px 0;
-        }
-        .control-item:last-child {
-            border-bottom: none;
-        }
-    </style>
-</head>
-<body>
-
-<nav class="navbar navbar-expand-lg">
-    <div class="container-fluid">
-        <span class="navbar-brand me-auto">
-            <i class="fas fa-seedling me-2 text-success"></i> Mikail Greenhouse Project
-        </span>
-        <div class="d-flex align-items-center">
-            <span class="navbar-text me-4 d-none d-lg-block">
-                Laatste Update: <span id="last-update-time"></span>
-            </span>
-            <ul class="navbar-nav">
-                <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownUser" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <img src="https://via.placeholder.com/30/00bcd4/ffffff?text=M" class="rounded-circle me-1" alt="Mikail"> Project User 
-                    </a>
-                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownUser">
-                        <li><a class="dropdown-item" href="#">Instellingen</a></li>
-                        <li><hr class="dropdown-divider"></li>
-                        <li><a class="dropdown-item" href="#">Exit</a></li>
-                    </ul>
-                </li>
-            </ul>
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title"><i class="fas fa-chart-area me-2"></i> Dagelijks Overzicht (Temperatuur)</h5>
+                <div style="height: 350px;">
+                    <canvas id="dailySummaryChart"></canvas>
+                </div>
+            </div>
         </div>
     </div>
-</nav>
-
-<div class="sidebar">
-    <div class="p-3 text-center">
-        <img src="https://via.placeholder.com/60/00bcd4/ffffff?text=M" class="rounded-circle mb-2" alt="Project User">
-        <h5 class="text-white">Welcome, Student</h5>
-    </div>
-    
-    <div class="mt-4">
-        <ul class="list-unstyled sidebar-nav">
-            <li class="nav-item active">
-                <a href="#dashboard" class="nav-link" onclick="loadContent('dashboard')"><i class="fas fa-home fa-fw me-2"></i> Dashboard</a>
-            </li>
-            
-            <li class="nav-item">
-                <a href="#" class="nav-link dropdown-toggle" onclick="toggleDropdown(this, 'climatic-menu')">
-                    <i class="fas fa-cloud fa-fw me-2"></i> Climatic Data
-                </a>
-                <ul class="dropdown-menu show" id="climatic-menu">
-                    <li><a class="dropdown-item" href="#" onclick="loadContent('placeholder', 'Temperature Detail')">Temperature</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="loadContent('placeholder', 'Humidity Detail')">Humidity</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="loadContent('placeholder', 'Soil Moisture Detail')">Soil Moisture</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="loadContent('placeholder', 'Light Level Detail')">Light Level</a></li>
-                    <li><a class="dropdown-item" href="#" onclick="loadContent('placeholder', 'pH Level Detail')">pH Level</a></li>
-                </ul>
-            </li>
-            
-            <li class="nav-item">
-                <a href="#" class="nav-link dropdown-toggle" onclick="toggleDropdown(this, 'controls-menu')">
-                    <i class="fas fa-sliders-h fa-fw me-2"></i> Controls
-                </a>
-                <ul class="dropdown-menu" id="controls-menu">
-                    <li><a class="dropdown-item" href="#" onclick="loadContent('controls')">Equipment Controls</a></li>
-                </ul>
-            </li>
-            
-            <li class="nav-item">
-                <a href="#" class="nav-link" onclick="loadContent('placeholder', 'Reports Overview')"><i class="fas fa-file-alt fa-fw me-2"></i> Reports</a>
-            </li>
-            
-            <li class="nav-item">
-                <a href="#" class="nav-link" onclick="loadContent('placeholder', 'System Settings')"><i class="fas fa-cog fa-fw me-2"></i> Settings</a>
-            </li>
-        </ul>
-    </div>
-    
-    <div class="position-absolute bottom-0 w-100 text-center p-2 border-top border-secondary" style="background-color: #212529;">
-        <a href="#" class="text-light me-3"><i class="fas fa-info-circle fa-lg"></i></a>
-        <a href="#" class="text-light me-3"><i class="fas fa-user-circle fa-lg"></i></a>
-        <a href="#" class="text-light"><i class="fas fa-sign-out-alt fa-lg"></i></a>
-    </div>
 </div>
+{% endblock %}
 
-<div class="main-content" id="main-content-area">
-    </div>
-
+{% block scripts %}
 <script>
     // --- GLOBAL DATA & THRESHOLDS ---
-    // !!! BELANGRIJKSTE FIX HIER: De Jinja2 variabelen moeten nu correct worden ingeladen !!!
     let globalSensorData = {
         "Soil Moisture": { 
-            // FIX: De variabelen moeten tussen aanhalingstekens staan om als geldige string in JS te laden.
-            value: "{{ soil_moisture }}", 
+            // Data wordt de eerste keer ingeladen via Jinja, daarna via AJAX.
+            value: "{{ soil_moisture | default(0.0) }}", 
             unit: "%", icon: "fa-water", color: "#00bcd4", 
-            description: "Bodemvochtigheid: Essentieel voor wateropname van de plant. Te laag leidt tot uitdroging; te hoog kan wortelrot veroorzaken.", 
+            description: "Bodemvochtigheid: Essentieel voor wateropname van de plant.", 
             min_alert: 60, max_alert: 95 
         },
         "Temperature": { 
-            value: "{{ temperature }}", unit: "°C", icon: "fa-temperature-three-quarters", color: "#4caf50", 
-            description: "Luchttemperatuur: Beïnvloedt de snelheid van fotosynthese en transpiratie. Te heet vertraagt groei, te koud beschadigt de cellen.", 
+            value: "{{ temperature | default(0.0) }}", unit: "°C", icon: "fa-temperature-three-quarters", color: "#4caf50", 
+            description: "Luchttemperatuur: Beïnvloedt de snelheid van fotosynthese en transpiratie.", 
             min_alert: 22, max_alert: 34 
         },
         "Humidity": { 
-            value: "{{ humidity }}", unit: "%", icon: "fa-droplet", color: "#00bcd4", 
-            description: "Luchtvochtigheid: Relatief aan transpiratie van de plant. Te laag maakt bladeren droog; te hoog vergroot de kans op schimmel.", 
+            value: "{{ humidity | default(0.0) }}", unit: "%", icon: "fa-droplet", color: "#00bcd4", 
+            description: "Luchtvochtigheid: Relatief aan transpiratie van de plant.", 
             min_alert: 65, max_alert: 90 
         },
         "pH Level": { 
-            value: "{{ ph_level }}", unit: "", icon: "fa-square-check", color: "#4caf50", 
-            description: "Water pH (zuurgraad): Bepaalt hoe goed de plant voedingsstoffen kan opnemen. Een afwijkende pH blokkeert de voedingsstroom.", 
+            value: "{{ ph_level | default(0.0) }}", unit: "", icon: "fa-square-check", color: "#4caf50", 
+            description: "Water pH (zuurgraad): Bepaalt hoe goed de plant voedingsstoffen kan opnemen.", 
             min_alert: 5.5, max_alert: 6.5 
         },
         "Light Level": { 
-            value: "{{ light_level }}", unit: " lux", icon: "fa-sun", color: "#ffc107", 
-            description: "Lichtintensiteit: De energiebron voor fotosynthese. Te weinig licht leidt tot zwakke groei; te veel kan de bladeren verbranden.", 
+            value: "{{ light_level | default(0) }}", unit: " lux", icon: "fa-sun", color: "#ffc107", 
+            description: "Lichtintensiteit: De energiebron voor fotosynthese.", 
             min_alert: 400, max_alert: 700 
         }
     };
-
-    let equipmentStatus = {
-        fans: false,
-        lights: true,
-        pump: false
-    };
-
-    // De grafiek data moet ook correct geparsed worden, met tojson en safe:
-    // Dit zorgt ervoor dat de Python list/dict correct wordt geconverteerd naar een JS Array/Object.
+    
+    // De initiële grafiek data (nodig voor de eerste render)
+    // tojson | safe zorgt voor correcte JSON-conversie
     const chartLabels = JSON.parse('{{ chart_labels | tojson | safe }}');
     const chartData = JSON.parse('{{ chart_data | tojson | safe }}');
     let dailySummaryChart = null; 
 
     // ---------------------------------------------------------------------------------------
-    // --- UTILITY & CORE LOGIC FUNCTIONS (Ongewijzigd t.o.v. de vorige versie) ---
+    // --- UTILITY & CORE LOGIC FUNCTIONS (Overgenomen uit de oude index.html) ---
     // ---------------------------------------------------------------------------------------
-    
+
     // Functie om advies te geven op basis van de alarmstatus
     function getAdvice(name, value, min, max) {
         if (value >= min && value <= max) {
@@ -351,14 +102,13 @@
         return `${problem} **Advies:** ${action}`;
     }
 
+
     function generateWidgetHTML(name, data) {
         let alertClass = '';
-        // CRUCIALE FIX: parseFloat moet nu de string-waarde verwerken, die nu correct is ingeladen door Jinja.
         const value = parseFloat(data.value); 
         
         if (isNaN(value)) {
-             // Toont dit als de data nog steeds niet correct is, voor debugging.
-             console.error(`Invalid sensor value for ${name}: ${data.value}. Check if Flask/Jinja is running.`);
+             console.error(`Invalid sensor value for ${name}: ${data.value}.`);
              return ''; 
         }
         
@@ -376,12 +126,15 @@
         if (name === 'Light Level') {
             displayValue = value.toFixed(0); 
         } else if (name === 'pH Level') {
-             displayValue = value.toFixed(2);
+            displayValue = value.toFixed(2);
         }
         
+        // Let op: De harde col-lg-2-4 / 20% breedte die je had, kan problemen geven met Bootstrap. 
+        // We laten de harde style: flex: 0 0 auto; width: 20%; staan om 5 kolommen te garanderen, 
+        // maar dit is geen standaard Bootstrap-klasse.
         return `
             <div class="col-lg-2-4 col-md-6" style="flex: 0 0 auto; width: 20%;">
-                <a href="#" style="text-decoration: none; color: inherit;" onclick="loadContent('placeholder', '${name} Detail')">
+                <a href="/detail/${name}" style="text-decoration: none; color: inherit;">
                     <div class="data-widget ${alertClass}">
                         <div class="icon-box" style="background-color: ${data.color};">
                             <i class="fas ${data.icon}"></i>
@@ -409,7 +162,7 @@
     // Renders the data widgets on the Dashboard view
     function renderWidgets() {
         const container = document.getElementById('data-widgets-container');
-        if (!container) return;
+        if (!container) return; // Stop als we niet op het Dashboard zijn
 
         let html = '';
         for (const [name, data] of Object.entries(globalSensorData)) {
@@ -419,185 +172,20 @@
         
         // BELANGRIJK: Initialiseer alle Bootstrap Tooltips na het renderen!
         const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]')
-        // Controleer of bootstrap.Tooltip beschikbaar is (komt van bootstrap.bundle.min.js)
         if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
              [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl))
         }
     }
 
-    // Toggles the state of a piece of equipment (e.g., fans, lights)
-    function toggleEquipment(equipment) {
-        equipmentStatus[equipment] = !equipmentStatus[equipment];
-        const statusElement = document.getElementById(`${equipment}-status`);
-
-        if (statusElement) {
-            if (equipmentStatus[equipment]) {
-                statusElement.textContent = 'ON';
-                statusElement.classList.remove('bg-secondary');
-                statusElement.classList.add('bg-success');
-            } else {
-                statusElement.textContent = 'OFF';
-                statusElement.classList.remove('bg-success');
-                statusElement.classList.add('bg-secondary');
-            }
-        }
-    }
-    
     // Sets the current time for the "Last Update" span
     function updateTime() {
         const now = new Date();
-        const options = { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'long', year: 'numeric' };
+        const options = { hour: '2-digit', minute: '2-digit', second: '2-digit' }; // Vereenvoudigd naar alleen tijd
         document.getElementById('last-update-time').textContent = now.toLocaleTimeString('nl-NL', options);
     }
-
-    // Toggles the visibility of the sidebar dropdown menus
-    function toggleDropdown(element, menuId) {
-        event.preventDefault(); 
-        const menu = document.getElementById(menuId);
-        menu.classList.toggle('show');
-    }
     
-    // Functie voor de Controls-pagina (ongewijzigd)
-    function getControlsHTML() {
-        return `
-            <h3><i class="fas fa-sliders-h me-2"></i> Equipment Controls</h3>
-            <p class="text-muted">Beheer de automatische en handmatige apparatuur van de kas.</p>
-            <div class="row mt-4">
-                <div class="col-lg-6">
-                    <div class="control-panel">
-                        <h4 class="mb-3 text-primary">Handmatige Bediending</h4>
-
-                        <div class="control-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <h5>Ventilatoren (Fans)</h5>
-                                <p class="text-muted mb-0">Controleert de luchtcirculatie en temperatuur.</p>
-                            </div>
-                            <div>
-                                <span class="badge ${equipmentStatus.fans ? 'bg-success' : 'bg-secondary'} me-3" id="fans-status">${equipmentStatus.fans ? 'ON' : 'OFF'}</span>
-                                <button class="btn ${equipmentStatus.fans ? 'btn-outline-danger' : 'btn-outline-success'} btn-sm" onclick="toggleEquipment('fans')">
-                                    ${equipmentStatus.fans ? 'UIT' : 'AAN'}
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="control-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <h5>Kweeklampen (Lights)</h5>
-                                <p class="text-muted mb-0">Reguleert de lichtintensiteit voor fotosynthese.</p>
-                            </div>
-                            <div>
-                                <span class="badge ${equipmentStatus.lights ? 'bg-success' : 'bg-secondary'} me-3" id="lights-status">${equipmentStatus.lights ? 'ON' : 'OFF'}</span>
-                                <button class="btn ${equipmentStatus.lights ? 'btn-outline-danger' : 'btn-outline-success'} btn-sm" onclick="toggleEquipment('lights')">
-                                    ${equipmentStatus.lights ? 'UIT' : 'AAN'}
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="control-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <h5>Waterpomp (Pump)</h5>
-                                <p class="text-muted mb-0">Levert water aan het irrigatiesysteem.</p>
-                            </div>
-                            <div>
-                                <span class="badge ${equipmentStatus.pump ? 'bg-success' : 'bg-secondary'} me-3" id="pump-status">${equipmentStatus.pump ? 'ON' : 'OFF'}</span>
-                                <button class="btn ${equipmentStatus.pump ? 'btn-outline-danger' : 'btn-outline-success'} btn-sm" onclick="toggleEquipment('pump')">
-                                    ${equipmentStatus.pump ? 'UIT' : 'AAN'}
-                                </button>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-
-                <div class="col-lg-6">
-                    <div class="control-panel">
-                        <h4 class="mb-3 text-info">Systeemstatus</h4>
-                        <p>Hier kunt u de huidige automatiseringsregels en geplande taken bekijken.</p>
-                        <ul class="list-group">
-                            <li class="list-group-item">Irrigatie: <span class="badge bg-success float-end">Auto (70% Drempel)</span></li>
-                            <li class="list-group-item">Temperatuurregeling: <span class="badge bg-warning text-dark float-end">Auto (25-30°C)</span></li>
-                            <li class="list-group-item">Lichtcyclus: <span class="badge bg-primary float-end">Auto (06:00 - 22:00)</span></li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // Functie voor de Dashboard-pagina (ongewijzigd)
-    function getDashboardHTML() {
-        return `
-            <h3><i class="fas fa-chart-line me-2"></i> Live Dashboard</h3>
-            <p class="text-muted">Real-time overzicht van de kascondities.</p>
-            
-            <div class="row g-4 mt-2" id="data-widgets-container">
-                </div>
-            
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div class="card shadow-sm">
-                        <div class="card-body">
-                            <h5 class="card-title"><i class="fas fa-chart-area me-2"></i> Dagelijks Overzicht (Temperatuur)</h5>
-                            <div style="height: 350px;">
-                                <canvas id="dailySummaryChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-    }
-    
-    // Functie voor de placeholder-pagina (ongewijzigd)
-    function getPlaceholderHTML(title) {
-        return `
-            <h3><i class="fas fa-cogs me-2"></i> ${title}</h3>
-            <p class="text-muted">Dit is een placeholder voor de gedetailleerde pagina's of rapporten.</p>
-            <div class="alert alert-info">
-                <strong>Planning:</strong> Hier komen grafieken, historische data en instellingen voor ${title}.
-            </div>
-        `;
-    }
-
-    // Handles the content switching in the main area (ongewijzigd)
-    function loadContent(pageKey, pageTitle = '') {
-        const contentArea = document.getElementById('main-content-area');
-        let htmlContent = '';
-        
-        document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
-            item.classList.remove('active');
-        });
-        const targetLink = document.querySelector(`.sidebar-nav a[onclick*="${pageKey}"]`);
-        if (targetLink) {
-            targetLink.closest('.nav-item').classList.add('active');
-        }
-
-        if (dailySummaryChart) {
-            dailySummaryChart.destroy();
-            dailySummaryChart = null;
-        }
-
-        if (pageKey === 'dashboard') {
-            htmlContent = getDashboardHTML();
-        } else if (pageKey === 'controls') {
-            htmlContent = getControlsHTML();
-        } else if (pageKey === 'placeholder') {
-            htmlContent = getPlaceholderHTML(pageTitle);
-        } else {
-            htmlContent = getPlaceholderHTML('Onbekende Pagina');
-        }
-
-        contentArea.innerHTML = htmlContent;
-
-        if (pageKey === 'dashboard') {
-            // setTimeout zorgt ervoor dat de canvas-elementen bestaan voordat Chart.js ze probeert te initialiseren
-            setTimeout(initChart, 50); 
-            renderWidgets(); 
-        }
-    }
-
     // ----------------------------------------------------
-    // --- AJAX LIVE DATA UPDATE FUNCTIES (ongewijzigd) ---
+    // --- AJAX LIVE DATA UPDATE FUNCTIES ---
     // ----------------------------------------------------
     
     function fetchAndUpdateData() {
@@ -614,10 +202,12 @@
 
                 for (const [key, widgetName] of Object.entries(keyMap)) {
                     if (data.hasOwnProperty(key)) {
+                        // Update de globale data
                         globalSensorData[widgetName].value = data[key].toString(); 
                     }
                 }
                 
+                // Her-render de widgets met de nieuwe data
                 renderWidgets(); 
                 updateTime();
             })
@@ -629,24 +219,25 @@
             .then(response => response.json())
             .then(data => {
                 if (dailySummaryChart && dailySummaryChart.data.datasets.length > 0) {
+                    // Update de grafiek data en labels
                     dailySummaryChart.data.labels = data.labels;
                     dailySummaryChart.data.datasets[0].data = data.data;
-                    dailySummaryChart.update();
+                    dailySummaryChart.update(); // Vertel Chart.js om opnieuw te tekenen
                 }
             })
             .catch(error => console.error('Fout bij het ophalen van data (grafiek):', error));
     }
 
-    function initChart() {
+    function initChart(initialLabels, initialData) {
         const ctx = document.getElementById('dailySummaryChart')?.getContext('2d');
         if (ctx) {
             dailySummaryChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: chartLabels, 
+                    labels: initialLabels, 
                     datasets: [{
                         label: 'Temperatuur (°C)',
-                        data: chartData,
+                        data: initialData,
                         borderColor: '#4caf50',
                         backgroundColor: 'rgba(76, 175, 80, 0.1)', 
                         tension: 0.4, 
@@ -658,36 +249,25 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 50, 
-                            grid: { display: true }
-                        }
+                        y: { beginAtZero: false, max: 40, grid: { display: true } }
                     },
-                    plugins: {
-                        legend: { display: false }
-                    }
+                    plugins: { legend: { display: false } }
                 }
             });
         }
     }
 
     // --- INITIALIZATION ---
-    function initDashboard() {
-        // Laadt het dashboard in en start het renderen van widgets en grafieken
-        loadContent('dashboard'); 
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialiseer de grafiek met de data die door Flask/Jinja is ingeladen
+        initChart(chartLabels, chartData); 
         
-        // Zorgt ervoor dat de realtime updates beginnen
-        fetchAndUpdateData(); 
-        fetchAndUpdateChart();
+        // Render de widgets de eerste keer
+        renderWidgets();
+
+        // Start de realtime updates (elke 5 seconden)
         setInterval(fetchAndUpdateData, 5000); 
         setInterval(fetchAndUpdateChart, 5000); 
-    }
-
-    window.onload = initDashboard;
+    });
 </script>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
-</body>
-</html>
+{% endblock %}
