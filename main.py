@@ -88,7 +88,6 @@ def generate_realistic_data():
     return data
 
 
-# --- FUNCTIES: DATA OPSLAG ---
 def insert_data_to_db(data):
     """Slaat een set data op in de sensor_data tabel."""
     
@@ -105,13 +104,27 @@ def insert_data_to_db(data):
     
     con.close()
     
-    
+# --- FUNCTIES: DATA OPSLAG (MET DEMO-TRUC) ---
 def take_and_store_measurement():
     """Genereert één meting en slaat deze op in de database."""
-    data = generate_realistic_data()
-    insert_data_to_db(data)
-    print(f"INFO: Nieuwe meting opgeslagen om {data['timestamp'].strftime('%H:%M:%S')}")
-    return data
+    
+    # 1. De normale, huidige meting
+    current_data = generate_realistic_data()
+    insert_data_to_db(current_data)
+    print(f"INFO: Nieuwe meting opgeslagen om {current_data['timestamp'].strftime('%H:%M:%S')}")
+
+    # 2. DE DEMO-TRUC: Genereer en sla ook data op voor verschillende momenten in het verleden.
+    # Dit zorgt ervoor dat de grafieken altijd data hebben om te tonen, ongeacht de tijdsperiode.
+    # We gebruiken timedelta om terug in de tijd te gaan.
+    historical_offsets = [
+        timedelta(hours=2), timedelta(hours=8), timedelta(days=1), 
+        timedelta(days=3), timedelta(days=6)
+    ]
+    
+    for offset in historical_offsets:
+        fake_historical_data = generate_realistic_data() # Genereer nieuwe random waarden
+        fake_historical_data['timestamp'] = datetime.now() - offset # OVERSCHRIJF de timestamp
+        insert_data_to_db(fake_historical_data)
 
 
 # --- FUNCTIES: DATA OPHALEN ---
@@ -165,16 +178,26 @@ def get_historical_sensor_data(db_column, hours=24, limit=150):
     
     con = duckdb.connect(database=DATABASE_FILE)
     
-    # We gebruiken een simpelere query om de laatste 'limit' metingen op te halen
+    # NIEUW: Bepaal het juiste formaat voor de tijd-labels op basis van de periode.
+    # Dit maakt de x-as van de grafiek veel logischer.
+    if int(hours) <= 24:
+        # Voor periodes tot een dag, toon Uur:Minuut
+        time_format = '%H:%M'
+    else:
+        # Voor langere periodes (zoals 7 dagen), toon Dag-Maand
+        time_format = '%d-%m'
+
+    # We gebruiken nu de dynamische 'time_format' variabele in de query.
+    # De rest van de query blijft hetzelfde.
     query = f"""
     SELECT 
-        STRFTIME(timestamp, '%H:%M') AS time_label,
+        STRFTIME(timestamp, '{time_format}') AS time_label,
         {db_column}
     FROM 
         sensor_data
+    WHERE timestamp >= now() - INTERVAL '{int(hours)}' HOUR
     ORDER BY 
-        timestamp DESC
-    LIMIT {limit};
+        timestamp ASC
     """
     
     results = con.execute(query).fetchall()
@@ -184,7 +207,7 @@ def get_historical_sensor_data(db_column, hours=24, limit=150):
     labels = [row[0] for row in results]
     data = [row[1] for row in results]
     
-    return {'labels': labels[::-1], 'data': data[::-1]}
+    return {'labels': labels, 'data': data}
 
 
 # FUNCTIE OPNIEUW DEFINIEREN (Gebruikt nu de nieuwe generieke functie)
@@ -330,6 +353,30 @@ def chart_data_api():
     history_data = get_historical_temperature_data()
     return jsonify(history_data)
 
+# NIEUWE API ROUTE: Voor de dynamische detail-grafieken
+@app.route('/api/historical_data/<sensor_name>', methods=['GET'])
+def historical_data_api(sensor_name):
+    """
+    Geeft historische data voor een specifieke sensor en tijdsperiode terug.
+    Wordt aangeroepen door de knoppen op de detailpagina.
+    Voorbeeld URL: /api/historical_data/Temperature?hours=6
+    """
+    # 1. Haal het aantal uren op uit de URL (?hours=...). Standaard is 24.
+    # We gebruiken request.args.get() om parameters uit de URL te lezen.
+    try:
+        hours = int(request.args.get('hours', 24))
+    except ValueError:
+        hours = 24 # Veilige standaardwaarde als er iets misgaat
+
+    # 2. Controleer of de sensor bestaat en haal de database-kolomnaam op.
+    if sensor_name in SENSOR_DETAILS:
+        db_key = SENSOR_DETAILS[sensor_name]['db_key']
+        # 3. Haal de data op met de juiste parameters.
+        history_data = get_historical_sensor_data(db_key, hours=hours)
+        return jsonify(history_data)
+    else:
+        # 4. Stuur een foutmelding als de sensor niet bekend is.
+        return jsonify({'error': f'Sensor {sensor_name} not found'}), 404
 
 # --- START APPLICATIE ---
 if __name__ == '__main__':

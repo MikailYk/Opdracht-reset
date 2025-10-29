@@ -26,6 +26,15 @@
         <div class="card shadow-sm">
             <div class="card-body">
                 <h5 class="card-title"><i class="fas fa-history me-2"></i> Historische Data (Laatste 24 uur)</h5>
+                
+                <!-- NIEUW: Knoppen voor de tijdsperiode -->
+                <div class="btn-group btn-group-sm mb-3" role="group" id="timeframe-selector">
+                    <button type="button" class="btn btn-outline-primary" data-hours="1">1 uur</button>
+                    <button type="button" class="btn btn-outline-primary" data-hours="6">6 uur</button>
+                    <button type="button" class="btn btn-outline-primary active" data-hours="24">24 uur</button>
+                    <button type="button" class="btn btn-outline-primary" data-hours="168">7 dagen</button>
+                </div>
+
                 <div style="height: 450px;">
                     <canvas id="historicalChart"></canvas>
                 </div>
@@ -56,10 +65,15 @@
     const minAlert = parseFloat('{{ min_alert }}');
     const maxAlert = parseFloat('{{ max_alert }}');
 
+    
+    // NIEUW: We slaan de grafiek op in een variabele zodat we hem later kunnen updaten.
+    let historicalChart = null; 
+    
     function initHistoricalChart() {
         const ctx = document.getElementById('historicalChart')?.getContext('2d');
         if (ctx) {
-            new Chart(ctx, {
+            // Sla de nieuwe grafiek op in onze variabele.
+            historicalChart = new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: chartLabels, 
@@ -101,7 +115,51 @@
         }
     }
 
-    // Initialiseer de grafiek zodra de DOM geladen is
-    document.addEventListener('DOMContentLoaded', initHistoricalChart);
+    // NIEUW: Functie om de grafiekdata op te halen en bij te werken.
+    function fetchAndUpdateChart(hours) {
+        // We maken een dynamische URL die de sensornaam en het aantal uren bevat.
+        // Voorbeeld: /api/historical_data/Temperature?hours=6
+        const apiUrl = `/api/historical_data/${sensorName}?hours=${hours}`;
+
+        fetch(apiUrl)
+            .then(response => response.json())
+            .then(data => {
+                if (historicalChart) {
+                    // Update de data en labels van de bestaande grafiek.
+                    historicalChart.data.labels = data.labels;
+                    historicalChart.data.datasets[0].data = data.data;
+                    
+                    // Vertel Chart.js om de grafiek opnieuw te tekenen met de nieuwe data.
+                    historicalChart.update();
+                }
+            })
+            .catch(error => console.error(`Fout bij ophalen van grafiekdata voor ${hours} uur:`, error));
+    }
+
+    // --- INITIALISATIE ---
+    // Wacht tot de hele pagina geladen is en voer dan de setup uit.
+    document.addEventListener('DOMContentLoaded', function() {
+        // 1. Voeg een 'event listener' toe aan de knoppengroep.
+        const timeframeSelector = document.getElementById('timeframe-selector');
+        if (timeframeSelector) {
+            timeframeSelector.addEventListener('click', function(event) {
+                // Controleer of er wel op een KNOP is geklikt.
+                if (event.target.tagName === 'BUTTON') {
+                    const hours = event.target.dataset.hours;
+
+                    // Verwijder de 'active' class van alle knoppen.
+                    this.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+                    // Voeg de 'active' class toe aan de geklikte knop.
+                    event.target.classList.add('active');
+
+                    // Roep de functie aan om de grafiek bij te werken.
+                    fetchAndUpdateChart(hours);
+                }
+            });
+        }
+
+        // 2. Teken de grafiek voor de allereerste keer (nadat de listeners klaarstaan).
+        initHistoricalChart();
+    });
 </script>
 {% endblock %}
